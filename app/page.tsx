@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase'
 
 export default async function Home() {
-  // Haal alle gevolgde producties en artesten op
+  // Haal alle gevolgde producties en artiesten op
   const { data: artists } = await supabase
     .from('artists')
     .select('id, name, artist_productions(production_id, productions(title))')
@@ -11,17 +11,19 @@ export default async function Home() {
     .from('productions')
     .select('title')
 
-  const trackedTitles = productions?.map(p => p.title.toLowerCase()) ?? []
+  const trackedTitles = productions?.map(p => p.title) ?? []
 
-  // Haal broadcasts op die matchen
+  // Haal alleen broadcasts op die matchen met gevolgde titels, laatste 30 dagen
   const { data: broadcasts, error } = await supabase
     .from('broadcasts')
     .select('title, channel_id, season, episode, start_time')
-    .order('start_time', { ascending: true })
+    .in('title', trackedTitles)
+    .gte('start_time', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+    .order('start_time', { ascending: false })
 
   if (error) return <pre className="p-8 text-red-500">{JSON.stringify(error, null, 2)}</pre>
 
-  const hits = broadcasts?.filter(b => trackedTitles.includes(b.title.toLowerCase())) ?? []
+  const hits = broadcasts ?? []
 
   // Bouw een lookup: productietitel -> artiestnaam
   const titleToArtist: Record<string, string> = {}
@@ -35,7 +37,7 @@ export default async function Home() {
   return (
     <main className="p-8">
       <h1 className="text-2xl font-bold mb-2">TV Broadcast Tracker</h1>
-      <p className="text-gray-500 mb-6">{hits.length} uitzendingen gevonden</p>
+      <p className="text-gray-500 mb-6">{hits.length} uitzendingen gevonden (laatste 30 dagen)</p>
       <table className="w-full text-sm border-collapse">
         <thead>
           <tr className="bg-gray-100 text-left">
@@ -55,7 +57,9 @@ export default async function Home() {
               <td className="p-2 border">{b.channel_id}</td>
               <td className="p-2 border">{b.season ?? '-'}</td>
               <td className="p-2 border">{b.episode ?? '-'}</td>
-              <td className="p-2 border">{new Date(b.start_time).toLocaleString('nl-BE', { timeZone: 'Europe/Brussels' })}</td>
+              <td className="p-2 border">
+                {new Date(b.start_time).toLocaleString('nl-BE', { timeZone: 'Europe/Brussels' })}
+              </td>
             </tr>
           ))}
         </tbody>
