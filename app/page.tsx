@@ -60,7 +60,7 @@ export default async function Home() {
               <td className="p-2 border">{b.season ?? '-'}</td>
               <td className="p-2 border">{b.episode ?? '-'}</td>
               <td className="p-2 border">
-                {new Date(b.start_time).toLocaleString('nl-BE', { timeZone: 'Europe/Brussels' })}
+                {new Date(b.start_time).toLocaleString('nl-BE')}
               </td>
             </tr>
           ))}
